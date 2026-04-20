@@ -1,6 +1,17 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 
-const supabase = createAdminClient();
+let _supabase: ReturnType<typeof createAdminClient> | null = null;
+function getDb() {
+  if (!_supabase) _supabase = createAdminClient();
+  return _supabase;
+}
+
+// 为保持代码简洁，在内部引用 supabase 的地方使用 getDb()
+const supabase = new Proxy({} as ReturnType<typeof createAdminClient>, {
+  get(_, prop) {
+    return (getDb() as any)[prop];
+  },
+});
 
 // 生成去重 key
 function dedupeKey(resourceId: string, alertType: string): string {

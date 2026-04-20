@@ -1,8 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 
-const supabase = createAdminClient();
-
 export async function generateMonthlyReport(tenantId: string, year: number, month: number) {
+  const supabase = createAdminClient();
   const periodStart = `${year}-${String(month).padStart(2, "0")}-01`;
   const nextMonth = month === 12 ? `${year + 1}-01-01` : `${year}-${String(month + 1).padStart(2, "0")}-01`;
   const prevMonthStart = month === 1 ? `${year - 1}-12-01` : `${year}-${String(month - 1).padStart(2, "0")}-01`;

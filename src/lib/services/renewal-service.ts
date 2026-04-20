@@ -2,7 +2,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const supabase = createAdminClient();
+let _supabase: ReturnType<typeof createAdminClient> | null = null;
+const supabase = new Proxy({} as ReturnType<typeof createAdminClient>, {
+  get(_, prop) {
+    if (!_supabase) _supabase = createAdminClient();
+    return (_supabase as any)[prop];
+  },
+});
 
 /**
  * 检测即将到期的资源，生成续租方案
