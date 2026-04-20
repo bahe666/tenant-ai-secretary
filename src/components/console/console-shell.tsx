@@ -1,18 +1,10 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { ChatWidget } from "@/components/chat/chat-widget";
 
@@ -59,12 +51,28 @@ const ADMIN_NAV = [
 export function ConsoleShell({ user, tenant, children }: ConsoleShellProps) {
   const pathname = usePathname();
   const { signOut } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const isAdmin = user.role === "super_admin" || user.role === "platform_ops";
 
   async function handleLogout() {
+    setMenuOpen(false);
     await signOut();
   }
+
+  // 点击外部关闭菜单
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    if (menuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [menuOpen]);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -90,36 +98,41 @@ export function ConsoleShell({ user, tenant, children }: ConsoleShellProps) {
           <div className="flex-1" />
 
           {/* User menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-2 h-9 px-2 rounded-md hover:bg-accent cursor-pointer">
-                <Avatar className="h-7 w-7">
-                  <AvatarFallback className="text-xs bg-blue-100 text-blue-700">
-                    {user.displayName[0]}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="hidden sm:block text-left">
-                  <p className="text-sm font-medium leading-none">{user.displayName}</p>
-                  <p className="text-xs text-muted-foreground">{ROLE_LABELS[user.role] || user.role}</p>
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="flex items-center gap-2 h-9 px-2 rounded-md hover:bg-accent cursor-pointer"
+            >
+              <div className="h-7 w-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-medium">
+                {user.displayName[0]}
+              </div>
+              <div className="hidden sm:block text-left">
+                <p className="text-sm font-medium leading-none">{user.displayName}</p>
+                <p className="text-xs text-muted-foreground">{ROLE_LABELS[user.role] || user.role}</p>
+              </div>
+            </button>
+
+            {menuOpen && (
+              <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
+                <div className="px-3 py-2 border-b border-slate-100">
+                  <p className="text-sm font-medium">{user.displayName}</p>
+                  <p className="text-xs text-slate-500">{user.email}</p>
                 </div>
-              </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>
-                <p className="font-medium">{user.displayName}</p>
-                <p className="text-xs text-muted-foreground font-normal">{user.email}</p>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-xs text-muted-foreground" disabled>
-                租户: {tenant.name}
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-xs text-muted-foreground" disabled>
-                角色: {ROLE_LABELS[user.role] || user.role}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="text-red-600">
-                退出登录
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <div className="px-3 py-1.5 text-xs text-slate-400">
+                  租户: {tenant.name}
+                </div>
+                <div className="px-3 py-1.5 text-xs text-slate-400 border-b border-slate-100">
+                  角色: {ROLE_LABELS[user.role] || user.role}
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  退出登录
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
