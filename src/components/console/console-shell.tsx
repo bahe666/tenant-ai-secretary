@@ -1,11 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { usePathname } from "next/navigation";
+import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -60,14 +58,12 @@ const ADMIN_NAV = [
 
 export function ConsoleShell({ user, tenant, children }: ConsoleShellProps) {
   const pathname = usePathname();
-  const router = useRouter();
-  const supabase = createClient();
+  const { signOut } = useAuth();
 
   const isAdmin = user.role === "super_admin" || user.role === "platform_ops";
 
   async function handleLogout() {
-    await supabase.auth.signOut();
-    window.location.href = "/login";
+    await signOut();
   }
 
   return (

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 
 const DEMO_ACCOUNTS = [
@@ -25,56 +24,60 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [ready, setReady] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
-  // 进入登录页时清除旧 session，确保可以切换账号
+  // 进入登录页时清除旧 session
   useEffect(() => {
-    supabase.auth.signOut();
+    async function clearSession() {
+      await supabase.auth.signOut();
+      setReady(true);
+    }
+    clearSession();
   }, []);
 
-  async function handleLogin(e?: React.FormEvent) {
-    e?.preventDefault();
+  async function doLogin(loginEmail: string, loginPassword: string) {
     setError("");
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: loginEmail,
+      password: loginPassword,
     });
 
-    if (error) {
-      setError(error.message);
+    if (authError) {
+      setError(authError.message);
       setLoading(false);
-    } else {
-      // Full page reload to ensure cookies are sent with the next request
-      window.location.href = "/console";
+      return;
     }
+
+    // 登录成功，用 full reload 确保 cookie 传递
+    window.location.href = "/console";
   }
 
-  async function handleDemoLogin(demoEmail: string) {
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    doLogin(email, password);
+  }
+
+  function handleDemoLogin(demoEmail: string) {
     setEmail(demoEmail);
     setPassword(DEMO_PASSWORD);
-    setError("");
-    setLoading(true);
+    doLogin(demoEmail, DEMO_PASSWORD);
+  }
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: demoEmail,
-      password: DEMO_PASSWORD,
-    });
-
-    if (error) {
-      setError("演示账号登录失败: " + error.message);
-      setLoading(false);
-    } else {
-      window.location.href = "/console";
-    }
+  if (!ready) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
+        <p className="text-sm text-slate-400">准备中...</p>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 p-4">
       <div className="w-full max-w-md space-y-6">
-        {/* Header */}
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center gap-2">
             <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center">
@@ -87,39 +90,22 @@ export default function LoginPage() {
           <p className="text-sm text-slate-500">租户专属智能秘书 MVP Demo</p>
         </div>
 
-        {/* Login Form */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">登录</CardTitle>
             <CardDescription>输入账号密码或使用演示账号快速体验</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">邮箱</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
+                <Input id="email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={loading} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">密码</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
+                <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required disabled={loading} />
               </div>
-              {error && (
-                <p className="text-sm text-red-600 bg-red-50 rounded-md p-2">{error}</p>
-              )}
+              {error && <p className="text-sm text-red-600 bg-red-50 rounded-md p-2">{error}</p>}
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "登录中..." : "登录"}
               </Button>
@@ -127,7 +113,6 @@ export default function LoginPage() {
           </CardContent>
         </Card>
 
-        {/* Demo Accounts */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-slate-600">演示账号快速登录</CardTitle>

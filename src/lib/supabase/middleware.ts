@@ -29,34 +29,9 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // IMPORTANT: Do not run any logic between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  // Public routes that don't require authentication
-  const publicPaths = ["/login", "/auth", "/api/"];
-  const isPublicPath = publicPaths.some((path) =>
-    request.nextUrl.pathname.startsWith(path)
-  );
-
-  if (!user && !isPublicPath) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
-
-  // Admin routes - check role
-  if (user && request.nextUrl.pathname.startsWith("/admin")) {
-    const role = user.app_metadata?.role;
-    if (role !== "super_admin" && role !== "platform_ops") {
-      const url = request.nextUrl.clone();
-      url.pathname = "/console";
-      return NextResponse.redirect(url);
-    }
-  }
+  // 只做 session 刷新，不做路由重定向
+  // 重定向逻辑交给客户端处理，避免服务端阻塞
+  await supabase.auth.getUser();
 
   return supabaseResponse;
 }

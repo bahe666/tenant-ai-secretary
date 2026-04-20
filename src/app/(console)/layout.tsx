@@ -1,52 +1,45 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+"use client";
+
+import { useAuth } from "@/hooks/use-auth";
 import { ConsoleShell } from "@/components/console/console-shell";
 
-export const dynamic = "force-dynamic";
+function LoadingSkeleton() {
+  return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="text-center space-y-3">
+        <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center mx-auto animate-pulse">
+          <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3" />
+          </svg>
+        </div>
+        <p className="text-sm text-slate-400">加载中...</p>
+      </div>
+    </div>
+  );
+}
 
-export default async function ConsoleLayout({
+export default function ConsoleLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user, loading } = useAuth();
 
-  if (!user) {
-    redirect("/login");
-  }
-
-  const role = user.app_metadata?.role || "member";
-  const tenantId = user.app_metadata?.tenant_id;
-
-  // 并行查询 profile 和 tenant，减少等待时间
-  const [profileResult, tenantResult] = await Promise.all([
-    supabase
-      .from("users")
-      .select("display_name, email, role")
-      .eq("id", user.id)
-      .single(),
-    supabase
-      .from("tenants")
-      .select("name, slug")
-      .eq("id", tenantId)
-      .single(),
-  ]);
+  if (loading) return <LoadingSkeleton />;
+  if (!user) return null; // AuthProvider handles redirect
 
   return (
     <ConsoleShell
       user={{
         id: user.id,
-        displayName: profileResult.data?.display_name || user.email || "",
-        email: user.email || "",
-        role: role,
+        displayName: user.displayName,
+        email: user.email,
+        role: user.role,
       }}
       tenant={{
-        id: tenantId,
-        name: tenantResult.data?.name || "未知租户",
-        slug: tenantResult.data?.slug || "",
+        id: user.tenantId,
+        name: user.tenantName,
+        slug: "",
       }}
     >
       {children}
