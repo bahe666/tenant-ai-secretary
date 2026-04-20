@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+
+  // 进入登录页时清除旧 session，确保可以切换账号
+  useEffect(() => {
+    supabase.auth.signOut();
+  }, []);
 
   async function handleLogin(e?: React.FormEvent) {
     e?.preventDefault();

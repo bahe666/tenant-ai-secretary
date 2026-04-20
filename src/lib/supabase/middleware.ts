@@ -48,13 +48,6 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // If user is logged in and on login page, redirect to console
-  if (user && request.nextUrl.pathname === "/login") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/console";
-    return NextResponse.redirect(url);
-  }
-
   // Admin routes - check role
   if (user && request.nextUrl.pathname.startsWith("/admin")) {
     const role = user.app_metadata?.role;

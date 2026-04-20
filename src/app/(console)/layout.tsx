@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ConsoleShell } from "@/components/console/console-shell";
 
+export const dynamic = "force-dynamic";
+
 export default async function ConsoleLayout({
   children,
 }: {
@@ -19,32 +21,32 @@ export default async function ConsoleLayout({
   const role = user.app_metadata?.role || "member";
   const tenantId = user.app_metadata?.tenant_id;
 
-  // 获取用户 profile
-  const { data: profile } = await supabase
-    .from("users")
-    .select("display_name, email, role")
-    .eq("id", user.id)
-    .single();
-
-  // 获取租户信息
-  const { data: tenant } = await supabase
-    .from("tenants")
-    .select("name, slug")
-    .eq("id", tenantId)
-    .single();
+  // 并行查询 profile 和 tenant，减少等待时间
+  const [profileResult, tenantResult] = await Promise.all([
+    supabase
+      .from("users")
+      .select("display_name, email, role")
+      .eq("id", user.id)
+      .single(),
+    supabase
+      .from("tenants")
+      .select("name, slug")
+      .eq("id", tenantId)
+      .single(),
+  ]);
 
   return (
     <ConsoleShell
       user={{
         id: user.id,
-        displayName: profile?.display_name || user.email || "",
+        displayName: profileResult.data?.display_name || user.email || "",
         email: user.email || "",
         role: role,
       }}
       tenant={{
         id: tenantId,
-        name: tenant?.name || "未知租户",
-        slug: tenant?.slug || "",
+        name: tenantResult.data?.name || "未知租户",
+        slug: tenantResult.data?.slug || "",
       }}
     >
       {children}

@@ -5,26 +5,19 @@ import { Badge } from "@/components/ui/badge";
 export default async function ConsolePage() {
   const supabase = await createClient();
 
-  // 查询资源统计
-  const { data: resources } = await supabase
-    .from("resources")
-    .select("id, resource_type, status, name, spec, expire_at");
-
-  // 查询最近 30 天账单汇总
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const { data: recentBills } = await supabase
-    .from("billing_records")
-    .select("amount")
-    .gte("date", thirtyDaysAgo.toISOString().split("T")[0]);
 
-  // 查询最近告警
-  const { data: alerts } = await supabase
-    .from("assistant_alert")
-    .select("alert_id, severity, summary, created_at")
-    .eq("status", "pending")
-    .order("created_at", { ascending: false })
-    .limit(5);
+  // 并行查询所有数据，大幅减少等待时间
+  const [resourcesResult, billsResult, alertsResult] = await Promise.all([
+    supabase.from("resources").select("id, resource_type, status, name, spec, expire_at"),
+    supabase.from("billing_records").select("amount").gte("date", thirtyDaysAgo.toISOString().split("T")[0]),
+    supabase.from("assistant_alert").select("alert_id, severity, summary, created_at").eq("status", "pending").order("created_at", { ascending: false }).limit(5),
+  ]);
+
+  const resources = resourcesResult.data;
+  const recentBills = billsResult.data;
+  const alerts = alertsResult.data;
 
   const totalResources = resources?.length || 0;
   const runningResources = resources?.filter((r) => r.status === "running").length || 0;
