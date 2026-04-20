@@ -42,8 +42,8 @@ export default function LoginPage() {
       setError(error.message);
       setLoading(false);
     } else {
-      router.push("/console");
-      router.refresh();
+      // Full page reload to ensure cookies are sent with the next request
+      window.location.href = "/console";
     }
   }
 
@@ -62,8 +62,7 @@ export default function LoginPage() {
       setError("演示账号登录失败: " + error.message);
       setLoading(false);
     } else {
-      router.push("/console");
-      router.refresh();
+      window.location.href = "/console";
     }
   }
 

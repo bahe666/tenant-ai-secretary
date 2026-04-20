@@ -67,8 +67,7 @@ export function ConsoleShell({ user, tenant, children }: ConsoleShellProps) {
 
   async function handleLogout() {
     await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
+    window.location.href = "/login";
   }
 
   return (
